@@ -3,59 +3,41 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import axios from "axios";
 
-// async function getInitialListAirports() {
-//     try {
-//         const response = await axios.get(
-//             'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-radius?radius=6000&lng=57.915054&lat=56.010555',
-//             {
-//                 "headers": {
-//                     "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
-//                     "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
-//                 }
-//             }
-//         );
-//         return response;
-//     } catch (error) {
-//         console.error(error);
-//         return null;
-//     }
-// }
-//
-// async function getAirportByName(name) {
-//     try {
-//         const response = await axios.get(
-//             'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-text?text=' + name,
-//             {
-//                 "headers": {
-//                     "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
-//                     "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
-//                 }
-//             }
-//         );
-//         return response;
-//     } catch (error) {
-//         console.error(error);
-//         return null;
-//     }
-// }
-//
-// async function getAirportByCode(code) {
-//     try {
-//         const response = await axios.get(
-//             'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-code?code=' + code,
-//             {
-//                 "headers": {
-//                     "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
-//                     "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
-//                 }
-//             }
-//         );
-//         return response;
-//     } catch (error) {
-//         console.error(error);
-//         return null;
-//     }
-// }
+function getInitialAirports() {
+    return axios.get(
+        'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-radius?radius=6000&lng=57.915054&lat=56.010555',
+        {
+            "headers": {
+                "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
+                "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
+            }
+        }
+    )
+}
+
+function getAirportsByName(params) {
+    return axios.get(
+        'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-text?text=' + params.text,
+        {
+            "headers": {
+                "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
+                "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
+            }
+        }
+    )
+}
+
+function getAirportsByCode(params) {
+    return axios.get(
+        'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-code?code=' + params.text,
+        {
+            "headers": {
+                "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
+                "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
+            }
+        }
+    )
+}
 
 class App extends React.Component {
     constructor(props) {
@@ -66,18 +48,11 @@ class App extends React.Component {
             loading: true,
         };
         this.search = this.search.bind(this);
+        this.getAirports = this.getAirports.bind(this);
     }
 
     componentDidMount() {
-        axios.get(
-            'https://cometari-airportsfinder-v1.p.rapidapi.com/api/airports/by-radius?radius=6000&lng=57.915054&lat=56.010555',
-            {
-                "headers": {
-                    "x-rapidapi-host": "cometari-airportsfinder-v1.p.rapidapi.com",
-                    "x-rapidapi-key": "aae212215dmsh0aeb91f7306b2ddp1f8d34jsn2baf847ae58d"
-                }
-            }
-        ).then(response => {
+        getInitialAirports().then(response => {
             const data = response.data;
             this.setState({data});
         })
@@ -85,6 +60,17 @@ class App extends React.Component {
 
     search(filterText) {
         this.setState({filterText});
+    }
+
+
+    getAirports() {
+        axios.all([getAirportsByName({text: this.state.filterText}), getAirportsByCode({text: this.state.filterText})])
+            .then(axios.spread((airportsByName, airportsByCode) => {
+                if (airportsByName.data.length !== 0 || airportsByCode.data.length !== 0) {
+                    const data = this.state.data.concat(airportsByName.data, airportsByCode.data);
+                    this.setState({data});
+                }
+            }));
     }
 
     render() {
@@ -95,6 +81,7 @@ class App extends React.Component {
                 />
                 <Table
                     data={this.state.data}
+                    getAirports={this.getAirports}
                     filterText={this.state.filterText}
                 />
             </div>
@@ -127,7 +114,7 @@ class SearchBar extends React.Component {
 }
 
 class Table extends React.Component {
-    render() {
+    renderRow() {
         const rows = [];
         this.props.data.forEach((item, i) => {
             const filterData = {
@@ -136,17 +123,31 @@ class Table extends React.Component {
                 lat: item.location.latitude,
                 lng: item.location.longitude,
             };
-            if (filterData.name.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1 &&
-                filterData.code.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1) {
-                return;
-            }
-
-            if(rows.length === 0 && this.props.filterText.length !== 0){
-                console.log('Запрос: ', this.props.filterText)
-            }
             rows.push(<Row key={i} value={filterData}/>)
         });
 
+        return this.filterRows(rows);
+    }
+
+    filterRows(rows) {
+        const filterRows = [];
+        rows.forEach(row => {
+            if (row.props.value.name.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1 &&
+                row.props.value.code.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1) {
+                return;
+            }
+
+            filterRows.push(row)
+        });
+
+        if (filterRows.length === 0 && this.props.filterText.length !== 0) {
+            this.props.getAirports();
+        }
+
+        return filterRows
+    }
+
+    render() {
         return (
             <table>
                 <thead>
@@ -156,7 +157,7 @@ class Table extends React.Component {
                 </tr>
                 </thead>
                 <tbody>
-                {rows}
+                {this.renderRow()}
                 </tbody>
             </table>
         );
