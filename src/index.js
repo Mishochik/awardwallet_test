@@ -83,44 +83,28 @@ class App extends React.Component {
         }
     }
 
-    creationRows() {
+    createRows() {
         const rows = [];
-        this.state.data.forEach(item => {
-            const filterData = {
-                name: item.name,
-                code: item.code,
-                lat: item.location.latitude,
-                lng: item.location.longitude,
-            };
-            rows.push(<Row key={item.airportId} value={filterData}/>)
-        });
-
-        return this.filterRows(rows);
-    }
-
-    filterRows(rows) {
-        const filterRows = [];
-        rows.forEach(row => {
-            if (row.props.value.name.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1 &&
-                row.props.value.code.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1) {
+        this.state.data.forEach(row => {
+            if (row.name.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1 &&
+                row.code.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1) {
                 return;
             }
 
-            filterRows.push(row)
+            rows.push(row)
         });
 
-        if (filterRows.length === 0 && this.state.filterText.length !== 0) {
+        if (rows.length === 0 && this.state.filterText.length !== 0) {
             this.getAirports();
         }
-
-        return filterRows;
+        return rows;
     }
 
     render() {
         return (
             <div className={'wrapper'}>
                 <SearchBar onFilterTextInput={this.search}/>
-                <Table rows={this.creationRows()}/>
+                <Table rows={this.createRows()}/>
             </div>
 
         );
@@ -150,20 +134,37 @@ class SearchBar extends React.Component {
     }
 }
 
-function Table(props) {
-    return (
-        <table>
-            <thead>
-            <tr>
-                <th>Name (Code)</th>
-                <th>Lat & Lng</th>
-            </tr>
-            </thead>
-            <tbody>
-            {props.rows}
-            </tbody>
-        </table>
-    );
+class Table extends React.Component {
+    renderRow() {
+        const rows = [];
+        this.props.rows.forEach((row, i) => {
+            const filterData = {
+                name: row.name,
+                code: row.code,
+                lat: row.location.latitude,
+                lng: row.location.longitude,
+            };
+            rows.push(<Row key={i} value={filterData}/>)
+        });
+
+        return rows;
+    }
+
+    render() {
+        return (
+            <table>
+                <thead>
+                <tr>
+                    <th>Name (Code)</th>
+                    <th>Lat & Lng</th>
+                </tr>
+                </thead>
+                <tbody>
+                {this.renderRow()}
+                </tbody>
+            </table>
+        );
+    }
 }
 
 function Row(props) {
