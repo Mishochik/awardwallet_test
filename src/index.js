@@ -53,6 +53,7 @@ class App extends React.Component {
         };
         this.search = this.search.bind(this);
         this.getAirports = this.getAirports.bind(this);
+        // this.creationRows = this.creationRows.bind(this);
     }
 
     async componentDidMount() {
@@ -82,17 +83,44 @@ class App extends React.Component {
         }
     }
 
+    creationRows() {
+        const rows = [];
+        this.state.data.forEach(item => {
+            const filterData = {
+                name: item.name,
+                code: item.code,
+                lat: item.location.latitude,
+                lng: item.location.longitude,
+            };
+            rows.push(<Row key={item.airportId} value={filterData}/>)
+        });
+
+        return this.filterRows(rows);
+    }
+
+    filterRows(rows) {
+        const filterRows = [];
+        rows.forEach(row => {
+            if (row.props.value.name.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1 &&
+                row.props.value.code.toLowerCase().indexOf(this.state.filterText.toLowerCase()) === -1) {
+                return;
+            }
+
+            filterRows.push(row)
+        });
+
+        if (filterRows.length === 0 && this.state.filterText.length !== 0) {
+            this.getAirports();
+        }
+
+        return filterRows;
+    }
+
     render() {
         return (
             <div className={'wrapper'}>
-                <SearchBar
-                    onFilterTextInput={this.search}
-                />
-                <Table
-                    data={this.state.data}
-                    getAirports={this.getAirports}
-                    filterText={this.state.filterText}
-                />
+                <SearchBar onFilterTextInput={this.search}/>
+                <Table rows={this.creationRows()}/>
             </div>
 
         );
@@ -122,55 +150,20 @@ class SearchBar extends React.Component {
     }
 }
 
-class Table extends React.Component {
-    renderRow() {
-        const rows = [];
-        this.props.data.forEach((item, i) => {
-            const filterData = {
-                name: item.name,
-                code: item.code,
-                lat: item.location.latitude,
-                lng: item.location.longitude,
-            };
-            rows.push(<Row key={i} value={filterData}/>)
-        });
-
-        return this.filterRows(rows);
-    }
-
-    filterRows(rows) {
-        const filterRows = [];
-        rows.forEach(row => {
-            if (row.props.value.name.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1 &&
-                row.props.value.code.toLowerCase().indexOf(this.props.filterText.toLowerCase()) === -1) {
-                return;
-            }
-
-            filterRows.push(row)
-        });
-
-        if (filterRows.length === 0 && this.props.filterText.length !== 0) {
-            this.props.getAirports();
-        }
-
-        return filterRows
-    }
-
-    render() {
-        return (
-            <table>
-                <thead>
-                <tr>
-                    <th>Name (Code)</th>
-                    <th>Lat & Lng</th>
-                </tr>
-                </thead>
-                <tbody>
-                {this.renderRow()}
-                </tbody>
-            </table>
-        );
-    }
+function Table(props) {
+    return (
+        <table>
+            <thead>
+            <tr>
+                <th>Name (Code)</th>
+                <th>Lat & Lng</th>
+            </tr>
+            </thead>
+            <tbody>
+            {props.rows}
+            </tbody>
+        </table>
+    );
 }
 
 function Row(props) {
