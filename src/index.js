@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef} from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import axios from "axios";
@@ -111,27 +111,19 @@ class App extends React.Component {
     }
 }
 
-class SearchBar extends React.Component {
-    constructor(props) {
-        super(props);
-        this.inputListener = this.inputListener.bind(this);
-    }
-
-    inputListener(event) {
-        this.props.onFilterTextInput(event.target.value);
-    }
-
-    render() {
-        return (
-            <div>
-                <input
-                    type="text"
-                    placeholder="Поиск..."
-                    onChange={this.inputListener}
-                />
-            </div>
-        );
-    }
+function SearchBar(props) {
+    const timerHandler = useRef();
+    return (
+        <input
+            onChange={event => {
+                clearTimeout(timerHandler.current);
+                const pendingValue = event.target.value;
+                timerHandler.current = setTimeout(() => {
+                    props.onFilterTextInput(pendingValue);
+                }, 500);
+            }}
+        />
+    );
 }
 
 class Table extends React.Component {
